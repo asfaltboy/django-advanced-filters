@@ -4,6 +4,7 @@
 /.tox/
 /.coverage
 /tests/test_project/host_settings.py
+/grappelli_tests/test_project/host_settings.py
 build/
 dist/
 django_advanced_filters.egg-info/
@@ -15,3 +16,4 @@ tests/db.sqlite*
 /advanced_filters/.coverage
 
 /tests/local.db
+
