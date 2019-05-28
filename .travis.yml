@@ -58,6 +58,6 @@ install:
   - pip install -e .[test] $PYTEST_DJANGO
 script:
   - coverage run -m py.test advanced_filters
-  - pep8 --exclude=*urls.py --exclude=*migrations advanced_filters -v
+  - pycodestyle --exclude=*urls.py --exclude=*migrations advanced_filters -v
 after_success:
   coveralls

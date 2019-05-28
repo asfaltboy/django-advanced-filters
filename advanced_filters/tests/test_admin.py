@@ -1,3 +1,5 @@
+import pytest
+
 try:
     from django.urls import reverse
 except ImportError:  # Django < 2.0
@@ -8,54 +10,64 @@ from django.test import TestCase
 
 from ..models import AdvancedFilter
 from ..admin import AdvancedListFilters
-from tests import factories
+# from tests import factories
 
 
-class ChageFormAdminTest(TestCase):
-    """ Test the AdvancedFilter admin change page """
-    def setUp(self):
-        self.user = factories.SalesRep()
-        assert self.client.login(username='user', password='test')
-        self.a = AdvancedFilter(title='test', url='test', created_by=self.user,
-                                model='customers.Client')
-        self.a.query = Q(email__iexact='a@a.com')
-        self.a.save()
+@pytest.fixture
+def advanced_filter(user, client):
+    assert client.login(username='user', password='test')
+    advanced_filter = AdvancedFilter(
+        title='test',
+        url='test',
+        created_by=user,
+        model='customers.Client',
+    )
+    advanced_filter.query = Q(email__iexact='a@a.com')
+    advanced_filter.save()
+    return advanced_filter
 
-    def test_change_page_requires_perms(self):
-        url = reverse('admin:advanced_filters_advancedfilter_change',
-                      args=(self.a.pk,))
-        res = self.client.get(url)
-        assert res.status_code == 403
 
-    def test_change_page_renders(self):
-        self.user.user_permissions.add(Permission.objects.get(
-            codename='change_advancedfilter'))
-        url = reverse('admin:advanced_filters_advancedfilter_change',
-                      args=(self.a.pk,))
+""" Test the AdvancedFilter admin change page """
 
-        with self.settings(ADVANCED_FILTER_EDIT_BY_USER=False):
-            res = self.client.get(url)
-        assert res.status_code == 200
 
-    def test_change_and_goto(self):
-        self.user.user_permissions.add(Permission.objects.get(
-            codename='change_advancedfilter'))
-        url = reverse('admin:advanced_filters_advancedfilter_change',
-                      args=(self.a.pk,))
-        form_data = {'form-TOTAL_FORMS': 1, 'form-INITIAL_FORMS': 0,
-                     '_save_goto': 1}
-        with self.settings(ADVANCED_FILTER_EDIT_BY_USER=False):
-            res = self.client.post(url, data=form_data)
-        assert res.status_code == 302
-        url = res['location']
-        assert url.endswith('admin/customers/client/?_afilter=1')
+def test_change_page_requires_perms(db, advanced_filter, user, client):
+    url = reverse('admin:advanced_filters_advancedfilter_change',
+                  args=(advanced_filter.pk,))
+    res = client.get(url)
+    assert res.status_code == 403
 
-    def test_create_page_disabled(self):
-        self.user.user_permissions.add(Permission.objects.get(
-            codename='add_advancedfilter'))
-        url = reverse('admin:advanced_filters_advancedfilter_add')
-        res = self.client.get(url)
-        assert res.status_code == 403
+
+def test_change_page_renders(advanced_filter, user, client, settings):
+    user.user_permissions.add(Permission.objects.get(
+        codename='change_advancedfilter'))
+    url = reverse('admin:advanced_filters_advancedfilter_change',
+                  args=(advanced_filter.pk,))
+
+    settings.ADVANCED_FILTER_EDIT_BY_USER = False
+    res = client.get(url)
+    assert res.status_code == 200
+
+
+def test_change_and_goto(advanced_filter, user, client, settings):
+    user.user_permissions.add(Permission.objects.get(
+        codename='change_advancedfilter'))
+    url = reverse('admin:advanced_filters_advancedfilter_change',
+                  args=(advanced_filter.pk,))
+    form_data = {'form-TOTAL_FORMS': 1, 'form-INITIAL_FORMS': 0,
+                 '_save_goto': 1}
+    settings.ADVANCED_FILTER_EDIT_BY_USER = False
+    res = client.post(url, data=form_data)
+    assert res.status_code == 302
+    url = res['location']
+    assert url.endswith('admin/customers/client/?_afilter=1')
+
+
+def test_create_page_disabled(user, client):
+    user.user_permissions.add(Permission.objects.get(
+        codename='add_advancedfilter'))
+    url = reverse('admin:advanced_filters_advancedfilter_add')
+    res = client.get(url)
+    assert res.status_code == 403
 
 
 class AdvancedFilterCreationTest(TestCase):

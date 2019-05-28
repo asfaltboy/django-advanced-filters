@@ -12,7 +12,7 @@ except ImportError:  # Django < 2.0
     from django.core.urlresolvers import reverse
 import django
 
-from tests import factories
+# from tests import factories
 
 
 class TestGetFieldChoicesView(TestCase):
